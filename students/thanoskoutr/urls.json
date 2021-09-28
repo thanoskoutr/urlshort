@@ -1,0 +1,22 @@
+[
+  {
+    "url": "https://sourceforge.net/projects/tmux.mirror", 
+    "path": "/sf/tmux.mirror"
+  }, 
+  {
+    "url": "https://sourceforge.net/projects/javacurses", 
+    "path": "/sf/javacurses"
+  }, 
+  {
+    "url": "https://sourceforge.net/projects/codeblocks", 
+    "path": "/sf/codeblocks"
+  }, 
+  {
+    "url": "https://sourceforge.net/projects/tcl", 
+    "path": "/sf/tcl"
+  }, 
+  {
+    "url": "https://sourceforge.net/projects/doxygen", 
+    "path": "/sf/doxygen"
+  }
+]

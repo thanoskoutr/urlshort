@@ -1,6 +1,7 @@
 package urlshort
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"gopkg.in/yaml.v2"
@@ -40,6 +41,16 @@ func parseYAML(yml []byte) ([]pathUrl, error) {
 	return pathUrls, nil
 }
 
+// parseJSON will parse a JSON file to validate it.
+func parseJSON(jsonBlob []byte) ([]pathUrl, error) {
+	var pathUrls []pathUrl
+	err := json.Unmarshal(jsonBlob, &pathUrls)
+	if err != nil {
+		return nil, err
+	}
+	return pathUrls, nil
+}
+
 // buildMap will convert the parsed data in a YAML file to map.
 func buildMap(pathUrls []pathUrl) map[string]string {
 	pathUrlMap := make(map[string]string)
@@ -71,5 +82,14 @@ func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
 		return nil, err
 	}
 	pathMap := buildMap(parsedYAML)
+	return MapHandler(pathMap, fallback), nil
+}
+
+func JSONHandler(jsonBlob []byte, fallback http.Handler) (http.HandlerFunc, error) {
+	parsedJSON, err := parseJSON(jsonBlob)
+	if err != nil {
+		return nil, err
+	}
+	pathMap := buildMap(parsedJSON)
 	return MapHandler(pathMap, fallback), nil
 }

@@ -13,6 +13,7 @@ import (
 func main() {
 	// Parse command-line flag
 	yamlFilename := flag.String("yaml", "urls.yaml", "YAML file with URLs and their short paths")
+	jsonFilename := flag.String("json", "urls.json", "JSON file with URLs and their short paths")
 	flag.Parse()
 
 	// Create a default request multiplexer as the last fallback
@@ -24,9 +25,12 @@ func main() {
 	// Build the YAMLHandler using the mapHandler as the fallback
 	yamlHandler := createYAMLHandler(*yamlFilename, mapHandler)
 
+	// Build the JSONHandler using the mapHandler as the fallback
+	jsonHandler := createJSONHandler(*jsonFilename, yamlHandler)
+
 	// Start server
 	fmt.Println("Starting the server on :8080")
-	http.ListenAndServe(":8080", yamlHandler)
+	http.ListenAndServe(":8080", jsonHandler)
 }
 
 // defaultMux is a default request multiplexer for all paths
@@ -62,4 +66,17 @@ func createYAMLHandler(name string, fallback http.Handler) http.HandlerFunc {
 		log.Fatal(err)
 	}
 	return yamlHandler
+}
+
+// createJSONHandler reads the JSON file, creates and returns a YAML Hundler
+func createJSONHandler(name string, fallback http.Handler) http.HandlerFunc {
+	jsonFile, err := os.ReadFile(name)
+	if err != nil {
+		log.Fatal(err)
+	}
+	jsonHandler, err := urlshort.JSONHandler([]byte(jsonFile), fallback)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return jsonHandler
 }
