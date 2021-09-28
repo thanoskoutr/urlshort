@@ -21,6 +21,20 @@ var ymls = `
   url: https://godoc.org/gopkg.in/yaml.v2
 `
 
+// Testcases JSONHandler
+var jsonBlob = `
+[
+  {
+    "url": "https://godoc.org/github.com/gophercises/urlshort",
+    "path": "/urlshort-godoc"
+  },
+  {
+    "url": "https://godoc.org/gopkg.in/yaml.v2",
+    "path": "/yaml-godoc"
+  }
+]
+`
+
 func TestMapHandler(t *testing.T) {
 	// Run tests for all testcases
 	for path, url := range pathsToUrls {
@@ -42,9 +56,27 @@ func TestMapHandler(t *testing.T) {
 
 func TestYAMLHandler(t *testing.T) {
 	// Run tests for all testcases
-	// for i, path := range paths {
 	for path, url := range pathsToUrls {
 		resp := runYAMLHandler(t, []byte(ymls), path)
+
+		// Check the status code is what we expect.
+		if status := resp.StatusCode; status != http.StatusFound {
+			t.Errorf("handler returned wrong status code: got %v want %v",
+				status, http.StatusFound)
+		}
+
+		// Check the header to see if redirection is what we expect.
+		if header := resp.Header; header["Location"][0] != url {
+			t.Errorf("handler returned wrong url: got %v want %v",
+				header["Location"][0], url)
+		}
+	}
+}
+
+func TestJSONHandler(t *testing.T) {
+	// Run tests for all testcases
+	for path, url := range pathsToUrls {
+		resp := runJSONHandler(t, []byte(jsonBlob), path)
 
 		// Check the status code is what we expect.
 		if status := resp.StatusCode; status != http.StatusFound {
@@ -108,6 +140,31 @@ func runYAMLHandler(t *testing.T, yml []byte, path string) *http.Response {
 		t.Fatal(err)
 	}
 	yamlHandler(resp, req)
+
+	// Return Response: StatusCode, Header, Body
+	return resp.Result()
+}
+
+// Run the YAMLHandler with the given path
+func runJSONHandler(t *testing.T, jsonBlob []byte, path string) *http.Response {
+	// Create a request to pass to our handler. We don't have any query parameters for now, so we'll
+	// pass 'nil' as the third parameter
+	req, err := http.NewRequest(http.MethodGet, path, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// We create a ResponseRecorder to record the response.
+	resp := httptest.NewRecorder()
+
+	// Create a fallback handler
+	fallbackHandler := http.HandlerFunc(fallback)
+
+	// Call the handler, passing the response and the request
+	jsonHandler, err := JSONHandler(jsonBlob, fallbackHandler)
+	if err != nil {
+		t.Fatal(err)
+	}
+	jsonHandler(resp, req)
 
 	// Return Response: StatusCode, Header, Body
 	return resp.Result()
