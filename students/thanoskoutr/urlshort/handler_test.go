@@ -1,11 +1,16 @@
 package urlshort
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
+
+// Wrong testcases
+var wrongPaths = []string{
+	"/wrong",
+	"/non-legit",
+}
 
 // Testcases Maphandler
 var pathsToUrls = map[string]string{
@@ -47,9 +52,30 @@ func TestMapHandler(t *testing.T) {
 		}
 
 		// Check the header to see if redirection is what we expect.
-		if header := resp.Header; header["Location"][0] != url {
+		header := resp.Header
+		if len(header["Location"]) <= 0 {
+			t.Fatalf("handler returned empty Location header: got %v",
+				header["Location"])
+		}
+		if header["Location"][0] != url {
 			t.Errorf("handler returned wrong url: got %v want %v",
 				header["Location"][0], url)
+		}
+	}
+	// Run tests for wrong testcases
+	for _, path := range wrongPaths {
+		resp := runMapHandler(t, pathsToUrls, path)
+
+		// Check the status code is what we expect.
+		if status := resp.StatusCode; status != http.StatusNotFound {
+			t.Errorf("handler returned wrong status code: got %v want %v",
+				status, http.StatusNotFound)
+		}
+		// Check the header to see if redirection is what we expect.
+		header := resp.Header
+		if len(header["Location"]) > 0 {
+			t.Fatalf("handler returned non empty Location header: got %v want %v",
+				header["Location"], []string{})
 		}
 	}
 }
@@ -66,9 +92,30 @@ func TestYAMLHandler(t *testing.T) {
 		}
 
 		// Check the header to see if redirection is what we expect.
-		if header := resp.Header; header["Location"][0] != url {
+		header := resp.Header
+		if len(header["Location"]) <= 0 {
+			t.Fatalf("handler returned empty Location header: got %v",
+				header["Location"])
+		}
+		if header["Location"][0] != url {
 			t.Errorf("handler returned wrong url: got %v want %v",
 				header["Location"][0], url)
+		}
+	}
+	// Run tests for wrong testcases
+	for _, path := range wrongPaths {
+		resp := runEncodingHandler(t, []byte(ymls), "yaml", path)
+
+		// Check the status code is what we expect.
+		if status := resp.StatusCode; status != http.StatusNotFound {
+			t.Errorf("handler returned wrong status code: got %v want %v",
+				status, http.StatusNotFound)
+		}
+		// Check the header to see if redirection is what we expect.
+		header := resp.Header
+		if len(header["Location"]) > 0 {
+			t.Fatalf("handler returned non empty Location header: got %v want %v",
+				header["Location"], []string{})
 		}
 	}
 }
@@ -85,17 +132,37 @@ func TestJSONHandler(t *testing.T) {
 		}
 
 		// Check the header to see if redirection is what we expect.
-		if header := resp.Header; header["Location"][0] != url {
+		header := resp.Header
+		if len(header["Location"]) <= 0 {
+			t.Fatalf("handler returned empty Location header: got %v",
+				header["Location"])
+		}
+		if header["Location"][0] != url {
 			t.Errorf("handler returned wrong url: got %v want %v",
 				header["Location"][0], url)
 		}
 	}
+	// Run tests for wrong testcases
+	for _, path := range wrongPaths {
+		resp := runEncodingHandler(t, []byte(jsonBlob), "json", path)
 
+		// Check the status code is what we expect.
+		if status := resp.StatusCode; status != http.StatusNotFound {
+			t.Errorf("handler returned wrong status code: got %v want %v",
+				status, http.StatusNotFound)
+		}
+		// Check the header to see if redirection is what we expect.
+		header := resp.Header
+		if len(header["Location"]) > 0 {
+			t.Fatalf("handler returned non empty Location header: got %v want %v",
+				header["Location"], []string{})
+		}
+	}
 }
 
 // Create a fallback Handler to pass to other Handlers
 func fallback(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "fallback handler")
+	http.Error(w, "fallback handler", http.StatusNotFound)
 }
 
 // Run the mapHandler with the given path
