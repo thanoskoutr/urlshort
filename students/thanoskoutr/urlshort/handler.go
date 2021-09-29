@@ -2,6 +2,8 @@ package urlshort
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 
 	"gopkg.in/yaml.v2"
@@ -31,20 +33,20 @@ type pathUrl struct {
 	Path string
 }
 
-// parseYAML will parse a YAML file to validate it.
-func parseYAML(yml []byte) ([]pathUrl, error) {
+// parseEncoding will parse an encoded file to validate it.
+func parseEncoded(data []byte, enc string) ([]pathUrl, error) {
 	var pathUrls []pathUrl
-	err := yaml.Unmarshal(yml, &pathUrls)
-	if err != nil {
-		return nil, err
+	var err error
+	// Select encoding scheme
+	switch enc {
+	case "yaml":
+		err = yaml.Unmarshal(data, &pathUrls)
+	case "json":
+		err = json.Unmarshal(data, &pathUrls)
+	default:
+		errMsg := fmt.Sprintf("%s encoding not supported", enc)
+		return nil, errors.New(errMsg)
 	}
-	return pathUrls, nil
-}
-
-// parseJSON will parse a JSON file to validate it.
-func parseJSON(jsonBlob []byte) ([]pathUrl, error) {
-	var pathUrls []pathUrl
-	err := json.Unmarshal(jsonBlob, &pathUrls)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +76,7 @@ func buildMap(pathUrls []pathUrl) map[string]string {
 // The only errors that can be returned all related to having
 // invalid YAML data.
 func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
-	parsedYAML, err := parseYAML(yml)
+	parsedYAML, err := parseEncoded(yml, "yaml")
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +102,7 @@ func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
 // The only errors that can be returned all related to having
 // invalid JSON data.
 func JSONHandler(jsonBlob []byte, fallback http.Handler) (http.HandlerFunc, error) {
-	parsedJSON, err := parseJSON(jsonBlob)
+	parsedJSON, err := parseEncoded(jsonBlob, "json")
 	if err != nil {
 		return nil, err
 	}

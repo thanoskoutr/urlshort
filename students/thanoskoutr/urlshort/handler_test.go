@@ -57,7 +57,7 @@ func TestMapHandler(t *testing.T) {
 func TestYAMLHandler(t *testing.T) {
 	// Run tests for all testcases
 	for path, url := range pathsToUrls {
-		resp := runYAMLHandler(t, []byte(ymls), path)
+		resp := runEncodingHandler(t, []byte(ymls), "yaml", path)
 
 		// Check the status code is what we expect.
 		if status := resp.StatusCode; status != http.StatusFound {
@@ -76,7 +76,7 @@ func TestYAMLHandler(t *testing.T) {
 func TestJSONHandler(t *testing.T) {
 	// Run tests for all testcases
 	for path, url := range pathsToUrls {
-		resp := runJSONHandler(t, []byte(jsonBlob), path)
+		resp := runEncodingHandler(t, []byte(jsonBlob), "json", path)
 
 		// Check the status code is what we expect.
 		if status := resp.StatusCode; status != http.StatusFound {
@@ -120,8 +120,8 @@ func runMapHandler(t *testing.T, pathsToUrls map[string]string, path string) *ht
 	return resp.Result()
 }
 
-// Run the YAMLHandler with the given path
-func runYAMLHandler(t *testing.T, yml []byte, path string) *http.Response {
+// Run an encoding Handler with the given path
+func runEncodingHandler(t *testing.T, data []byte, enc string, path string) *http.Response {
 	// Create a request to pass to our handler. We don't have any query parameters for now, so we'll
 	// pass 'nil' as the third parameter
 	req, err := http.NewRequest(http.MethodGet, path, nil)
@@ -135,36 +135,19 @@ func runYAMLHandler(t *testing.T, yml []byte, path string) *http.Response {
 	fallbackHandler := http.HandlerFunc(fallback)
 
 	// Call the handler, passing the response and the request
-	yamlHandler, err := YAMLHandler(yml, fallbackHandler)
+	var handler http.HandlerFunc
+	switch enc {
+	case "yaml":
+		handler, err = YAMLHandler(data, fallbackHandler)
+	case "json":
+		handler, err = JSONHandler(data, fallbackHandler)
+	default:
+		t.Fatalf("%s encoding not supported", enc)
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
-	yamlHandler(resp, req)
-
-	// Return Response: StatusCode, Header, Body
-	return resp.Result()
-}
-
-// Run the YAMLHandler with the given path
-func runJSONHandler(t *testing.T, jsonBlob []byte, path string) *http.Response {
-	// Create a request to pass to our handler. We don't have any query parameters for now, so we'll
-	// pass 'nil' as the third parameter
-	req, err := http.NewRequest(http.MethodGet, path, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// We create a ResponseRecorder to record the response.
-	resp := httptest.NewRecorder()
-
-	// Create a fallback handler
-	fallbackHandler := http.HandlerFunc(fallback)
-
-	// Call the handler, passing the response and the request
-	jsonHandler, err := JSONHandler(jsonBlob, fallbackHandler)
-	if err != nil {
-		t.Fatal(err)
-	}
-	jsonHandler(resp, req)
+	handler(resp, req)
 
 	// Return Response: StatusCode, Header, Body
 	return resp.Result()
