@@ -22,10 +22,10 @@ func main() {
 	// Build the MapHandler using the mux as the fallback
 	mapHandler := createMapHandler(mux)
 
-	// Build the YAMLHandler using the mapHandler as the fallback
+	// Build the YAMLHandler using the previous handler as the fallback
 	yamlHandler := createYAMLHandler(*yamlFilename, mapHandler)
 
-	// Build the JSONHandler using the mapHandler as the fallback
+	// Build the JSONHandler using the previous handler as the fallback
 	jsonHandler := createJSONHandler(*jsonFilename, yamlHandler)
 
 	// Start server
@@ -68,7 +68,7 @@ func createYAMLHandler(name string, fallback http.Handler) http.HandlerFunc {
 	return yamlHandler
 }
 
-// createJSONHandler reads the JSON file, creates and returns a YAML Hundler
+// createJSONHandler reads the JSON file, creates and returns a JSON Hundler
 func createJSONHandler(name string, fallback http.Handler) http.HandlerFunc {
 	jsonFile, err := os.ReadFile(name)
 	if err != nil {
