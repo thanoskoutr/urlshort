@@ -73,9 +73,6 @@ func buildMap(pathUrls []pathUrl) map[string]string {
 //
 // The only errors that can be returned all related to having
 // invalid YAML data.
-//
-// See MapHandler to create a similar http.HandlerFunc via
-// a mapping of paths to urls.
 func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
 	parsedYAML, err := parseYAML(yml)
 	if err != nil {
@@ -85,6 +82,23 @@ func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
 	return MapHandler(pathMap, fallback), nil
 }
 
+// JSONHandler will parse the provided JSON and then return
+// an http.HandlerFunc (which also implements http.Handler)
+// that will attempt to map any paths to their corresponding
+// URL. If the path is not provided in the JSON, then the
+// fallback http.Handler will be called instead.
+//
+// JSON is expected to be in the format:
+//
+//    [
+//      {
+//        "url": "https://www.some-url.com/demo",
+//        "path": "/some-path"
+//      },
+//    ]
+//
+// The only errors that can be returned all related to having
+// invalid JSON data.
 func JSONHandler(jsonBlob []byte, fallback http.Handler) (http.HandlerFunc, error) {
 	parsedJSON, err := parseJSON(jsonBlob)
 	if err != nil {
