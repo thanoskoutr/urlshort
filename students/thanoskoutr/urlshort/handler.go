@@ -2,7 +2,6 @@ package urlshort
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -44,8 +43,7 @@ func parseEncoded(data []byte, enc string) ([]pathUrl, error) {
 	case "json":
 		err = json.Unmarshal(data, &pathUrls)
 	default:
-		errMsg := fmt.Sprintf("%s encoding not supported", enc)
-		return nil, errors.New(errMsg)
+		return nil, fmt.Errorf("%s encoding not supported", enc)
 	}
 	if err != nil {
 		return nil, err
