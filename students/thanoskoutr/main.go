@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/thanoskoutr/urlshort/students/thanoskoutr/database"
 	"github.com/thanoskoutr/urlshort/students/thanoskoutr/urlshort"
 )
 
@@ -14,7 +15,16 @@ func main() {
 	// Parse command-line flag
 	yamlFilename := flag.String("yaml", "urls.yaml", "YAML file with URLs and their short paths")
 	jsonFilename := flag.String("json", "urls.json", "JSON file with URLs and their short paths")
+	dbFilename := flag.String("db", "urls.db", "Database file")
 	flag.Parse()
+
+	// Setup Database
+	BUCKET_NAME := "URL"
+	db, err := database.SetupDB(*dbFilename, BUCKET_NAME)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.BoltDB.Close()
 
 	// Create a default request multiplexer as the last fallback
 	mux := defaultMux()
@@ -28,9 +38,12 @@ func main() {
 	// Build the JSONHandler using the previous handler as the fallback
 	jsonHandler := createJSONHandler(*jsonFilename, yamlHandler)
 
+	// Build the DBHandler using the previous handler as the fallback
+	dbHandler := createDBHandler(db, jsonHandler)
+
 	// Start server
 	fmt.Println("Starting the server on :8080")
-	http.ListenAndServe(":8080", jsonHandler)
+	http.ListenAndServe(":8080", dbHandler)
 }
 
 // defaultMux is a default request multiplexer for all paths
@@ -79,4 +92,26 @@ func createJSONHandler(name string, fallback http.Handler) http.HandlerFunc {
 		log.Fatal(err)
 	}
 	return jsonHandler
+}
+
+// createDBHandler reads the Database, creates and returns a DB Hundler
+func createDBHandler(db *database.Database, fallback http.Handler) http.HandlerFunc {
+	// Add some entries to the Database
+	pathsToUrls := map[string]string{
+		"/gnu/health":   "https://savannah.gnu.org/projects/health",
+		"/gnu/avr-libc": "https://savannah.nongnu.org/projects/avr-libc",
+		"/gnu/dino":     "https://savannah.nongnu.org/projects/dino",
+		"/gnu/ddd":      "https://savannah.gnu.org/projects/ddd",
+		"/gnu/epsilon":  "https://savannah.gnu.org/projects/epsilon",
+	}
+	err := database.PutMapEntriesDB(db, pathsToUrls)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	dbHandler, err := urlshort.DBHandler(db, fallback)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return dbHandler
 }

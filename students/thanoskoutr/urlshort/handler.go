@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/thanoskoutr/urlshort/students/thanoskoutr/database"
 	"gopkg.in/yaml.v2"
 )
 
@@ -105,5 +106,28 @@ func JSONHandler(jsonBlob []byte, fallback http.Handler) (http.HandlerFunc, erro
 		return nil, err
 	}
 	pathMap := buildMap(parsedJSON)
+	return MapHandler(pathMap, fallback), nil
+}
+
+// DBHandler will query the Database and then return
+// an http.HandlerFunc (which also implements http.Handler)
+// that will attempt to map any paths to their corresponding
+// URL. If the path is not provided in the Database, then the
+// fallback http.Handler will be called instead.
+//
+// Database is expected to be in key-value pair format.
+//
+// The only errors that can be returned all related to getting
+// error from the Database.
+func DBHandler(db *database.Database, fallback http.Handler) (http.HandlerFunc, error) {
+	pathMap := make(map[string]string)
+	// Read all entries from Database, save in a map
+	entries, err := database.GetEntriesDB(db)
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range entries {
+		pathMap[k] = v
+	}
 	return MapHandler(pathMap, fallback), nil
 }
